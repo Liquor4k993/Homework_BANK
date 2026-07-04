@@ -1,11 +1,13 @@
 package com.bank.recommendation.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RecommendationDto {
     private String name;
     private String id;
     private String text;
 
-    // Конструктор по умолчанию (нужен для Jackson)
     public RecommendationDto() {
     }
 
@@ -39,5 +41,14 @@ public class RecommendationDto {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    @Override
+    public String toString() {
+        return "RecommendationDto{" +
+                "name='" + name + '\'' +
+                ", id='" + id + '\'' +
+                ", text='" + (text != null ? text.substring(0, Math.min(text.length(), 30)) + "..." : null) +
+                '}';
     }
 }
