@@ -1,16 +1,24 @@
 package com.bank.recommendation;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class RecommendationApplication {
+
+	private static final Logger log = LoggerFactory.getLogger(RecommendationApplication.class);
+
 	public static void main(String[] args) {
 		SpringApplication.run(RecommendationApplication.class, args);
-		System.out.println("========================================");
-		System.out.println("  🏦 Star Bank Recommendation Service");
-		System.out.println("  ✅ Started successfully!");
-		System.out.println("  📍 http://localhost:8080/recommendation/{userId}");
-		System.out.println("========================================");
+		log.info("========================================");
+		log.info("  🏦 Star Bank Recommendation Service");
+		log.info("  ✅ Started successfully!");
+		log.info("  📍 GET  /recommendation/{{userId}}");
+		log.info("  📍 POST /rule");
+		log.info("  📍 GET  /rule");
+		log.info("  📍 DELETE /rule/{{id}}");
+		log.info("========================================");
 	}
 }

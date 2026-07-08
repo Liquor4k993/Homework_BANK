@@ -1,6 +1,7 @@
 package com.bank.recommendation.controller;
 
 import com.bank.recommendation.dto.RecommendationDto;
+import com.bank.recommendation.dto.RecommendationResponse;
 import com.bank.recommendation.service.RecommendationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ public class RecommendationController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<Map<String, Object>> getRecommendations(@PathVariable String userId) {
+    public ResponseEntity<RecommendationResponse> getRecommendations(@PathVariable String userId) {
         log.info("Received request for user: {}", userId);
 
         UUID userUuid;
@@ -29,43 +30,24 @@ public class RecommendationController {
             userUuid = UUID.fromString(userId);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid UUID format: {}", userId);
-            Map<String, Object> errorResponse = new LinkedHashMap<>();
-            errorResponse.put("user_id", userId);
-            errorResponse.put("recommendations", Collections.emptyList());
-            errorResponse.put("error", "Invalid user ID format");
-            return ResponseEntity.badRequest().body(errorResponse);
+            return ResponseEntity.badRequest()
+                    .body(new RecommendationResponse(userId, Collections.emptyList()));
         }
 
         try {
             List<RecommendationDto> recommendations = service.getRecommendations(userUuid);
-
-            Map<String, Object> response = new LinkedHashMap<>();
-            response.put("user_id", userId);
-            response.put("recommendations", recommendations);
-
             log.info("Returning {} recommendations for user: {}", recommendations.size(), userId);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(new RecommendationResponse(userId, recommendations));
 
         } catch (Exception e) {
             log.error("Error processing request for user {}: {}", userId, e.getMessage(), e);
-
-            Map<String, Object> errorResponse = new LinkedHashMap<>();
-            errorResponse.put("user_id", userId);
-            errorResponse.put("recommendations", Collections.emptyList());
-            errorResponse.put("error", "Internal server error: " + e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RecommendationResponse(userId, Collections.emptyList()));
         }
     }
 
-    // ДОПОЛНИТЕЛЬНЫЕ ЭНДПОИНТЫ
+    // ДОПОЛНИТЕЛЬНЫЕ ЭНДПОИНТЫ (для отладки)
 
-    // Очистить кэш
-    @DeleteMapping("/cache")
-    public ResponseEntity<String> clearCache() {
-        service.clearCache();
-        return ResponseEntity.ok("Cache cleared successfully");
-    }
 
     // Получить информацию о сервисе
     @GetMapping("/info")

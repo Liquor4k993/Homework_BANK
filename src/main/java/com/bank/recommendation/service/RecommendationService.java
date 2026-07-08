@@ -5,62 +5,47 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RecommendationService {
 
     private static final Logger log = LoggerFactory.getLogger(RecommendationService.class);
 
-    private final List<RecommendationRuleSet> ruleSets;
+    private final List<RecommendationRuleSet> staticRuleSets;
+    private final DynamicRuleService dynamicRuleService;
 
-    // Простой кэш для хранения результатов
-    private final Map<UUID, List<RecommendationDto>> cache = new ConcurrentHashMap<>();
-
-    public RecommendationService(List<RecommendationRuleSet> ruleSets) {
-        this.ruleSets = ruleSets;
-        log.info("Initialized RecommendationService with {} rule sets", ruleSets.size());
+    public RecommendationService(List<RecommendationRuleSet> staticRuleSets,
+                                 DynamicRuleService dynamicRuleService) {
+        this.staticRuleSets = staticRuleSets;
+        this.dynamicRuleService = dynamicRuleService;
+        log.info("Initialized RecommendationService with {} static rule sets", staticRuleSets.size());
     }
 
     public List<RecommendationDto> getRecommendations(UUID userId) {
         log.info("Getting recommendations for user: {}", userId);
 
-        // Проверка кэша
-        if (cache.containsKey(userId)) {
-            log.debug("Returning cached recommendations for user: {}", userId);
-            return cache.get(userId);
-        }
-
-        // Вычисление рекомендаций
         List<RecommendationDto> recommendations = new ArrayList<>();
 
-        for (RecommendationRuleSet rule : ruleSets) {
+        // 1. СТАТИЧЕСКИЕ правила
+        for (RecommendationRuleSet rule : staticRuleSets) {
             try {
-                Optional<RecommendationDto> result = rule.check(userId);
-                result.ifPresent(recommendations::add);
+                rule.check(userId).ifPresent(recommendations::add);
             } catch (Exception e) {
-                log.error("Error checking rule {} for user {}: {}",
+                log.error("Error checking static rule {} for user {}: {}",
                         rule.getClass().getSimpleName(), userId, e.getMessage(), e);
             }
         }
 
-        log.info("Found {} recommendations for user: {}", recommendations.size(), userId);
+        // 2. ДИНАМИЧЕСКИЕ правила
+        try {
+            List<RecommendationDto> dynamicRecommendations = dynamicRuleService.checkDynamicRules(userId);
+            recommendations.addAll(dynamicRecommendations);
+            log.debug("Added {} dynamic recommendations", dynamicRecommendations.size());
+        } catch (Exception e) {
+            log.error("Error checking dynamic rules for user {}: {}", userId, e.getMessage(), e);
+        }
 
-        // Сохранение в кэш
-        cache.put(userId, recommendations);
-
+        log.info("Total recommendations found for user {}: {}", userId, recommendations.size());
         return recommendations;
-    }
-
-    // Метод для очистки кэша
-    public void clearCache() {
-        cache.clear();
-        log.info("Cache cleared");
-    }
-
-    // Метод для очистки кэша для конкретного пользователя
-    public void clearCacheForUser(UUID userId) {
-        cache.remove(userId);
-        log.info("Cache cleared for user: {}", userId);
     }
 }

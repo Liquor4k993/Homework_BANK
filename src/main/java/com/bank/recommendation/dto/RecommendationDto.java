@@ -11,14 +11,12 @@ public class RecommendationDto {
     public RecommendationDto() {
     }
 
-    // Конструктор с параметрами
     public RecommendationDto(String name, String id, String text) {
         this.name = name;
         this.id = id;
         this.text = text;
     }
 
-    // Геттеры и сеттеры
     public String getName() {
         return name;
     }
@@ -41,14 +39,5 @@ public class RecommendationDto {
 
     public void setText(String text) {
         this.text = text;
-    }
-
-    @Override
-    public String toString() {
-        return "RecommendationDto{" +
-                "name='" + name + '\'' +
-                ", id='" + id + '\'' +
-                ", text='" + (text != null ? text.substring(0, Math.min(text.length(), 30)) + "..." : null) +
-                '}';
     }
 }
