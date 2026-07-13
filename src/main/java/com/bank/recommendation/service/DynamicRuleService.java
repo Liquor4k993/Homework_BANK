@@ -4,11 +4,13 @@ import com.bank.recommendation.dto.RecommendationDto;
 import com.bank.recommendation.dto.QueryDto;
 import com.bank.recommendation.entity.QueryEntity;
 import com.bank.recommendation.entity.RuleEntity;
+import com.bank.recommendation.entity.RuleStatEntity;
 import com.bank.recommendation.enums.ComparisonOperator;
 import com.bank.recommendation.enums.ProductType;
 import com.bank.recommendation.enums.QueryType;
 import com.bank.recommendation.enums.TransactionType;
 import com.bank.recommendation.repository.RuleRepository;
+import com.bank.recommendation.repository.RuleStatRepository;
 import com.bank.recommendation.repository.UserStatsRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +25,14 @@ public class DynamicRuleService {
 
     private final RuleRepository ruleRepository;
     private final UserStatsRepository statsRepository;
+    private final RuleStatRepository ruleStatRepository;
 
     public DynamicRuleService(RuleRepository ruleRepository,
-                              UserStatsRepository statsRepository) {
+                              UserStatsRepository statsRepository,
+                              RuleStatRepository ruleStatRepository) {
         this.ruleRepository = ruleRepository;
         this.statsRepository = statsRepository;
+        this.ruleStatRepository = ruleStatRepository;
     }
 
     public List<RecommendationDto> checkDynamicRules(UUID userId) {
@@ -54,10 +59,35 @@ public class DynamicRuleService {
                         rule.getProductId(),
                         rule.getProductText()
                 ));
+
+                // Увеличиваем счетчик статистики
+                incrementRuleStat(rule.getId());
             }
         }
 
         return recommendations;
+    }
+
+    @Transactional
+    protected void incrementRuleStat(UUID ruleId) {
+        try {
+            // Атомарное увеличение счетчика - теперь метод возвращает int
+            int updated = ruleStatRepository.incrementCount(ruleId);
+
+            if (updated == 0) {
+                // Если записи нет - создаем новую
+                RuleEntity rule = ruleRepository.findById(ruleId)
+                        .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+                RuleStatEntity stat = new RuleStatEntity(rule);
+                stat.setCount(1);
+                ruleStatRepository.save(stat);
+                log.debug("Created new stat record for rule: {} with count 1", ruleId);
+            } else {
+                log.debug("Incremented stat for rule: {}", ruleId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to increment stat for rule {}: {}", ruleId, e.getMessage());
+        }
     }
 
     private boolean evaluateQuery(UUID userId, QueryEntity query) {
@@ -88,7 +118,7 @@ public class DynamicRuleService {
 
     private boolean evaluateTransactionSumCompare(UUID userId, List<String> args) {
         ProductType productType = ProductType.valueOf(args.get(0));
-        TransactionType transactionType = TransactionType.valueOf(args.get(1));
+        TransactionType transactionType = TransactionType.fromString(args.get(1));
         ComparisonOperator operator = ComparisonOperator.fromSymbol(args.get(2));
         int constant = Integer.parseInt(args.get(3));
 
@@ -123,14 +153,24 @@ public class DynamicRuleService {
                 .toList();
 
         rule.setQueries(queryEntities);
-        return ruleRepository.save(rule);
+        RuleEntity savedRule = ruleRepository.save(rule);
+
+        // Создаем запись статистики
+        RuleStatEntity stat = new RuleStatEntity(savedRule);
+        ruleStatRepository.save(stat);
+
+        log.info("Created rule with id: {} and stat record", savedRule.getId());
+        return savedRule;
     }
 
     @Transactional
     public void deleteRule(UUID id) {
         if (ruleRepository.existsById(id)) {
+            // Удаляем статистику (каскадно)
+            ruleStatRepository.deleteByRuleId(id);
+            // Удаляем правило
             ruleRepository.deleteById(id);
-            log.info("Deleted rule with id: {}", id);
+            log.info("Deleted rule with id: {} and its stats", id);
         } else {
             throw new IllegalArgumentException("Rule not found with id: " + id);
         }
@@ -138,5 +178,9 @@ public class DynamicRuleService {
 
     public List<RuleEntity> getAllRules() {
         return ruleRepository.findAll();
+    }
+
+    public List<RuleStatEntity> getAllStats() {
+        return ruleStatRepository.findAll();
     }
 }

@@ -18,7 +18,11 @@ public class RecommendationApplication {
 		log.info("  📍 GET  /recommendation/{{userId}}");
 		log.info("  📍 POST /rule");
 		log.info("  📍 GET  /rule");
+		log.info("  📍 GET  /rule/stats");
 		log.info("  📍 DELETE /rule/{{id}}");
+		log.info("  📍 POST /management/clear-caches");
+		log.info("  📍 GET  /management/info");
+		log.info("  🤖 Telegram Bot: @{{bot_username}}");
 		log.info("========================================");
 	}
 }

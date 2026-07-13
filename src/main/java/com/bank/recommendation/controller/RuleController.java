@@ -1,9 +1,8 @@
 package com.bank.recommendation.controller;
 
-import com.bank.recommendation.dto.RuleListResponse;
-import com.bank.recommendation.dto.RuleRequest;
-import com.bank.recommendation.dto.RuleResponse;
+import com.bank.recommendation.dto.*;
 import com.bank.recommendation.entity.RuleEntity;
+import com.bank.recommendation.entity.RuleStatEntity;
 import com.bank.recommendation.service.DynamicRuleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +22,9 @@ public class RuleController {
         this.dynamicRuleService = dynamicRuleService;
     }
 
+    // ============================================
     // POST /rule - создание нового правила
-
+    // ============================================
     @PostMapping
     public ResponseEntity<RuleResponse> createRule(@RequestBody RuleRequest request) {
         log.info("Creating new dynamic rule for product: {}", request.getProductName());
@@ -54,8 +54,9 @@ public class RuleController {
         }
     }
 
+    // ============================================
     // GET /rule - получение всех правил
-
+    // ============================================
     @GetMapping
     public ResponseEntity<RuleListResponse> getAllRules() {
         log.info("Getting all dynamic rules");
@@ -65,9 +66,8 @@ public class RuleController {
 
             List<RuleResponse> responses = rules.stream()
                     .map(rule -> {
-                        // Конвертируем QueryEntity обратно в QueryDto
-                        List<com.bank.recommendation.dto.QueryDto> queryDtos = rule.getQueries().stream()
-                                .map(q -> new com.bank.recommendation.dto.QueryDto(
+                        List<QueryDto> queryDtos = rule.getQueries().stream()
+                                .map(q -> new QueryDto(
                                         q.getQueryType(),
                                         q.getArguments(),
                                         q.isNegate()
@@ -92,8 +92,9 @@ public class RuleController {
         }
     }
 
+    // ============================================
     // DELETE /rule/{id} - удаление правила
-
+    // ============================================
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRule(@PathVariable UUID id) {
         log.info("Deleting rule with id: {}", id);
@@ -109,6 +110,38 @@ public class RuleController {
 
         } catch (Exception e) {
             log.error("Error deleting rule: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // ============================================
+    // GET /rule/stats - получение статистики
+    // ============================================
+    @GetMapping("/stats")
+    public ResponseEntity<RuleStatsResponse> getStats() {
+        log.info("Getting rule statistics");
+
+        try {
+            List<RuleEntity> allRules = dynamicRuleService.getAllRules();
+            List<RuleStatEntity> stats = dynamicRuleService.getAllStats();
+
+            // Создаем карту для быстрого доступа к статистике
+            Map<UUID, Long> statMap = new HashMap<>();
+            for (RuleStatEntity stat : stats) {
+                statMap.put(stat.getRule().getId(), stat.getCount());
+            }
+
+            // Формируем ответ со всеми правилами (включая count=0)
+            List<RuleStatsResponse.RuleStat> result = new ArrayList<>();
+            for (RuleEntity rule : allRules) {
+                long count = statMap.getOrDefault(rule.getId(), 0L);
+                result.add(new RuleStatsResponse.RuleStat(rule.getId(), count));
+            }
+
+            return ResponseEntity.ok(new RuleStatsResponse(result));
+
+        } catch (Exception e) {
+            log.error("Error getting rule stats: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
