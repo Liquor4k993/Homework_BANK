@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.*;
 
 @RestController
@@ -22,14 +23,13 @@ public class RuleController {
         this.dynamicRuleService = dynamicRuleService;
     }
 
-    // ============================================
-    // POST /rule - создание нового правила
-    // ============================================
     @PostMapping
-    public ResponseEntity<RuleResponse> createRule(@RequestBody RuleRequest request) {
+    public ResponseEntity<?> createRule(@RequestBody RuleRequest request) {
         log.info("Creating new dynamic rule for product: {}", request.getProductName());
 
         try {
+            validateRuleRequest(request);
+
             RuleEntity saved = dynamicRuleService.createRule(
                     request.getProductName(),
                     request.getProductId(),
@@ -48,17 +48,18 @@ public class RuleController {
             log.info("Created rule with id: {}", saved.getId());
             return ResponseEntity.ok(response);
 
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("Error creating rule: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal server error"));
         }
     }
 
-    // ============================================
-    // GET /rule - получение всех правил
-    // ============================================
     @GetMapping
-    public ResponseEntity<RuleListResponse> getAllRules() {
+    public ResponseEntity<?> getAllRules() {
         log.info("Getting all dynamic rules");
 
         try {
@@ -88,15 +89,13 @@ public class RuleController {
 
         } catch (Exception e) {
             log.error("Error getting rules: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal server error"));
         }
     }
 
-    // ============================================
-    // DELETE /rule/{id} - удаление правила
-    // ============================================
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRule(@PathVariable UUID id) {
+    public ResponseEntity<?> deleteRule(@PathVariable UUID id) {
         log.info("Deleting rule with id: {}", id);
 
         try {
@@ -110,28 +109,24 @@ public class RuleController {
 
         } catch (Exception e) {
             log.error("Error deleting rule: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal server error"));
         }
     }
 
-    // ============================================
-    // GET /rule/stats - получение статистики
-    // ============================================
     @GetMapping("/stats")
-    public ResponseEntity<RuleStatsResponse> getStats() {
+    public ResponseEntity<?> getStats() {
         log.info("Getting rule statistics");
 
         try {
             List<RuleEntity> allRules = dynamicRuleService.getAllRules();
             List<RuleStatEntity> stats = dynamicRuleService.getAllStats();
 
-            // Создаем карту для быстрого доступа к статистике
             Map<UUID, Long> statMap = new HashMap<>();
             for (RuleStatEntity stat : stats) {
                 statMap.put(stat.getRule().getId(), stat.getCount());
             }
 
-            // Формируем ответ со всеми правилами (включая count=0)
             List<RuleStatsResponse.RuleStat> result = new ArrayList<>();
             for (RuleEntity rule : allRules) {
                 long count = statMap.getOrDefault(rule.getId(), 0L);
@@ -142,7 +137,23 @@ public class RuleController {
 
         } catch (Exception e) {
             log.error("Error getting rule stats: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal server error"));
+        }
+    }
+
+    /**
+     * Валидация запроса на создание правила
+     */
+    private void validateRuleRequest(RuleRequest request) {
+        if (request.getProductName() == null || request.getProductName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Product name is required");
+        }
+        if (request.getProductId() == null || request.getProductId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID is required");
+        }
+        if (request.getRule() == null || request.getRule().isEmpty()) {
+            throw new IllegalArgumentException("At least one query is required");
         }
     }
 }

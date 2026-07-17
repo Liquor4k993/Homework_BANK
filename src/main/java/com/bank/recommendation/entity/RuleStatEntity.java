@@ -1,6 +1,7 @@
 package com.bank.recommendation.entity;
 
 import jakarta.persistence.*;
+
 import java.util.UUID;
 
 @Entity

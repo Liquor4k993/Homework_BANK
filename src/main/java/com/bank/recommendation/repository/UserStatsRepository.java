@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -59,11 +60,11 @@ public class UserStatsRepository {
         String cacheKey = userId + "_" + productType;
         return userOfCache.get(cacheKey, key -> {
             String sql = """
-                SELECT COUNT(*) > 0 
-                FROM transactions t 
-                JOIN products p ON t.product_id = p.id 
-                WHERE t.user_id = ? AND p.type = ?
-            """;
+                        SELECT COUNT(*) > 0 
+                        FROM transactions t 
+                        JOIN products p ON t.product_id = p.id 
+                        WHERE t.user_id = ? AND p.type = ?
+                    """;
             Boolean result = jdbcTemplate.queryForObject(sql, Boolean.class,
                     userId.toString(), productType.name());
             return result != null && result;
@@ -74,11 +75,11 @@ public class UserStatsRepository {
         String cacheKey = userId + "_" + productType;
         return activeUserOfCache.get(cacheKey, key -> {
             String sql = """
-                SELECT COUNT(*) >= 5 
-                FROM transactions t 
-                JOIN products p ON t.product_id = p.id 
-                WHERE t.user_id = ? AND p.type = ?
-            """;
+                        SELECT COUNT(*) >= 5 
+                        FROM transactions t 
+                        JOIN products p ON t.product_id = p.id 
+                        WHERE t.user_id = ? AND p.type = ?
+                    """;
             Boolean result = jdbcTemplate.queryForObject(sql, Boolean.class,
                     userId.toString(), productType.name());
             return result != null && result;
@@ -97,11 +98,11 @@ public class UserStatsRepository {
                     "WITHDRAW" : transactionType.name();
 
             String sql = """
-                SELECT COALESCE(SUM(t.amount), 0)
-                FROM transactions t 
-                JOIN products p ON t.product_id = p.id 
-                WHERE t.user_id = ? AND p.type = ? AND t.type = ?
-            """;
+                        SELECT COALESCE(SUM(t.amount), 0)
+                        FROM transactions t 
+                        JOIN products p ON t.product_id = p.id 
+                        WHERE t.user_id = ? AND p.type = ? AND t.type = ?
+                    """;
 
             Double sum = jdbcTemplate.queryForObject(sql, Double.class,
                     userId.toString(), productType.name(), transactionTypeName);
@@ -124,13 +125,13 @@ public class UserStatsRepository {
 
         return transactionSumCompareDepositWithdrawCache.get(cacheKey, key -> {
             String sql = """
-                SELECT 
-                    COALESCE(SUM(CASE WHEN t.type = 'DEPOSIT' THEN t.amount END), 0) as deposit_sum,
-                    COALESCE(SUM(CASE WHEN t.type = 'WITHDRAW' THEN t.amount END), 0) as withdraw_sum
-                FROM transactions t 
-                JOIN products p ON t.product_id = p.id 
-                WHERE t.user_id = ? AND p.type = ?
-            """;
+                        SELECT 
+                            COALESCE(SUM(CASE WHEN t.type = 'DEPOSIT' THEN t.amount END), 0) as deposit_sum,
+                            COALESCE(SUM(CASE WHEN t.type = 'WITHDRAW' THEN t.amount END), 0) as withdraw_sum
+                        FROM transactions t 
+                        JOIN products p ON t.product_id = p.id 
+                        WHERE t.user_id = ? AND p.type = ?
+                    """;
 
             Map<String, Object> result = jdbcTemplate.queryForMap(sql, userId.toString(), productType.name());
             Double depositSum = ((Number) result.get("deposit_sum")).doubleValue();

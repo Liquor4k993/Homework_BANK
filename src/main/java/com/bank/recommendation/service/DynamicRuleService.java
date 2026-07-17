@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.*;
 
 @Service
@@ -35,6 +36,12 @@ public class DynamicRuleService {
         this.ruleStatRepository = ruleStatRepository;
     }
 
+    /**
+     * Проверяет все динамические правила для пользователя
+     *
+     * @param userId ID пользователя
+     * @return список рекомендаций
+     */
     public List<RecommendationDto> checkDynamicRules(UUID userId) {
         List<RecommendationDto> recommendations = new ArrayList<>();
 
@@ -60,22 +67,28 @@ public class DynamicRuleService {
                         rule.getProductText()
                 ));
 
-                // Увеличиваем счетчик статистики
-                incrementRuleStat(rule.getId());
+                // Увеличиваем счетчик статистики (вызов через public метод для корректной работы @Transactional)
+                incrementRuleStatPublic(rule.getId());
             }
         }
 
         return recommendations;
     }
 
+    /**
+     * Публичный метод для увеличения статистики.
+     * Вынесен отдельно для корректной работы @Transactional через Spring-прокси
+     */
     @Transactional
-    protected void incrementRuleStat(UUID ruleId) {
+    public void incrementRuleStatPublic(UUID ruleId) {
+        incrementRuleStatInternal(ruleId);
+    }
+
+    protected void incrementRuleStatInternal(UUID ruleId) {
         try {
-            // Атомарное увеличение счетчика - теперь метод возвращает int
             int updated = ruleStatRepository.incrementCount(ruleId);
 
             if (updated == 0) {
-                // Если записи нет - создаем новую
                 RuleEntity rule = ruleRepository.findById(ruleId)
                         .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
                 RuleStatEntity stat = new RuleStatEntity(rule);
@@ -99,8 +112,7 @@ public class DynamicRuleService {
             case USER_OF -> evaluateUserOf(userId, args);
             case ACTIVE_USER_OF -> evaluateActiveUserOf(userId, args);
             case TRANSACTION_SUM_COMPARE -> evaluateTransactionSumCompare(userId, args);
-            case TRANSACTION_SUM_COMPARE_DEPOSIT_WITHDRAW ->
-                    evaluateTransactionSumCompareDepositWithdraw(userId, args);
+            case TRANSACTION_SUM_COMPARE_DEPOSIT_WITHDRAW -> evaluateTransactionSumCompareDepositWithdraw(userId, args);
         };
 
         return negate ? !result : result;
@@ -155,7 +167,6 @@ public class DynamicRuleService {
         rule.setQueries(queryEntities);
         RuleEntity savedRule = ruleRepository.save(rule);
 
-        // Создаем запись статистики
         RuleStatEntity stat = new RuleStatEntity(savedRule);
         ruleStatRepository.save(stat);
 
@@ -166,9 +177,7 @@ public class DynamicRuleService {
     @Transactional
     public void deleteRule(UUID id) {
         if (ruleRepository.existsById(id)) {
-            // Удаляем статистику (каскадно)
             ruleStatRepository.deleteByRuleId(id);
-            // Удаляем правило
             ruleRepository.deleteById(id);
             log.info("Deleted rule with id: {} and its stats", id);
         } else {

@@ -1,6 +1,7 @@
 package com.bank.recommendation.dto;
 
 import com.bank.recommendation.enums.QueryType;
+
 import java.util.List;
 
 public class QueryDto {

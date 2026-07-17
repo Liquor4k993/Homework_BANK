@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.*;
 
 @RestController
@@ -39,17 +40,17 @@ public class RecommendationController {
             log.info("Returning {} recommendations for user: {}", recommendations.size(), userId);
             return ResponseEntity.ok(new RecommendationResponse(userId, recommendations));
 
+        } catch (IllegalArgumentException e) {
+            log.error("Business error for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new RecommendationResponse(userId, Collections.emptyList()));
         } catch (Exception e) {
-            log.error("Error processing request for user {}: {}", userId, e.getMessage(), e);
+            log.error("System error for user {}: {}", userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RecommendationResponse(userId, Collections.emptyList()));
         }
     }
 
-    // ДОПОЛНИТЕЛЬНЫЕ ЭНДПОИНТЫ (для отладки)
-
-
-    // Получить информацию о сервисе
     @GetMapping("/info")
     public ResponseEntity<Map<String, Object>> getInfo() {
         Map<String, Object> info = new LinkedHashMap<>();

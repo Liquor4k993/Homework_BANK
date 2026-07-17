@@ -2,6 +2,7 @@ package com.bank.recommendation.entity;
 
 import com.bank.recommendation.enums.QueryType;
 import jakarta.persistence.*;
+
 import java.util.List;
 
 @Entity
@@ -28,15 +29,35 @@ public class QueryEntity {
     }
 
     // Геттеры и сеттеры
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public QueryType getQueryType() { return queryType; }
-    public void setQueryType(QueryType queryType) { this.queryType = queryType; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public List<String> getArguments() { return arguments; }
-    public void setArguments(List<String> arguments) { this.arguments = arguments; }
+    public QueryType getQueryType() {
+        return queryType;
+    }
 
-    public boolean isNegate() { return negate; }
-    public void setNegate(boolean negate) { this.negate = negate; }
+    public void setQueryType(QueryType queryType) {
+        this.queryType = queryType;
+    }
+
+    public List<String> getArguments() {
+        return arguments;
+    }
+
+    public void setArguments(List<String> arguments) {
+        this.arguments = arguments;
+    }
+
+    public boolean isNegate() {
+        return negate;
+    }
+
+    public void setNegate(boolean negate) {
+        this.negate = negate;
+    }
 }

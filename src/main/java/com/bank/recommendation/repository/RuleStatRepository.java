@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,12 +19,22 @@ public interface RuleStatRepository extends JpaRepository<RuleStatEntity, UUID> 
 
     Optional<RuleStatEntity> findByRuleId(UUID ruleId);
 
-    // Исправленный метод - возвращает int (количество обновленных строк)
+    /**
+     * Атомарно увеличивает счетчик срабатываний правила на 1
+     *
+     * @param ruleId ID правила
+     * @return количество обновленных строк (0 или 1)
+     */
     @Modifying
     @Transactional
     @Query("UPDATE RuleStatEntity r SET r.count = r.count + 1 WHERE r.rule.id = :ruleId")
     int incrementCount(@Param("ruleId") UUID ruleId);
 
+    /**
+     * Удаляет статистику для правила
+     *
+     * @param ruleId ID правила
+     */
     @Modifying
     @Transactional
     @Query("DELETE FROM RuleStatEntity r WHERE r.rule.id = :ruleId")

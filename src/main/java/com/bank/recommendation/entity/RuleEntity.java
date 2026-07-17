@@ -1,6 +1,7 @@
 package com.bank.recommendation.entity;
 
 import jakarta.persistence.*;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -29,18 +30,43 @@ public class RuleEntity {
     }
 
     // Геттеры и сеттеры
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() {
+        return id;
+    }
 
-    public String getProductName() { return productName; }
-    public void setProductName(String productName) { this.productName = productName; }
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
-    public String getProductId() { return productId; }
-    public void setProductId(String productId) { this.productId = productId; }
+    public String getProductName() {
+        return productName;
+    }
 
-    public String getProductText() { return productText; }
-    public void setProductText(String productText) { this.productText = productText; }
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
 
-    public List<QueryEntity> getQueries() { return queries; }
-    public void setQueries(List<QueryEntity> queries) { this.queries = queries; }
+    public String getProductId() {
+        return productId;
+    }
+
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
+
+    public String getProductText() {
+        return productText;
+    }
+
+    public void setProductText(String productText) {
+        this.productText = productText;
+    }
+
+    public List<QueryEntity> getQueries() {
+        return queries;
+    }
+
+    public void setQueries(List<QueryEntity> queries) {
+        this.queries = queries;
+    }
 }
