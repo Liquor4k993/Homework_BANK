@@ -1,4 +1,10 @@
 package com.bank.recommendation.service;
 
-public class RecommendationRuleSet {
+import com.bank.recommendation.dto.RecommendationDto;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface RecommendationRuleSet {
+    Optional<RecommendationDto> check(UUID userId);
 }
